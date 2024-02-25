@@ -1,0 +1,36 @@
+---
+title: "LT Public Finance Dashboard"
+author: "Žygimantas Bogužas"
+format: dashboard
+embed-resources: true
+---
+
+```{r include=FALSE}
+#| label: Packages
+#| include: false
+if(!require("pacman")) install.packages("pacman");library("pacman")
+p_load(eurostat, rsdmx, data.table, plotly, janitor)
+```
+
+# Centrinė valdžia {orientation="rows" scrolling="true"}
+
+## Row
+
+### Column {.tabset}
+
+```{r}
+#| include: false
+
+dt_CV <- as.data.table(readSDMX(providerId = "LSD", resource = "data", flowRef = "S7R283_M2040105", dsd = TRUE), labels = T)
+dt_CV_clean <- dt_CV[, clean_names(dt_CV)][
+  , kintamasis := fcase(deficitas_m60808 == "R04","Dotacijos_i",
+                        deficitas_m60808 == "R11","Vidaus (Grynasis finansinio turto pasikeitimas, išskyrus grynuosius pinigus)",
+                        deficitas_m60808 == "R21","Užsienio (Grynasis finansinio turto pasikeitimas, išskyrus grynuosius pinigus)",
+                        deficitas_m60808 == "R24","Vidaus (Grynasis finansinių įsipareigojimų pasikeitimas)",
+                        deficitas_m60808 == "R25","Užsienio (Grynasis finansinių įsipareigojimų pasikeitimas)",
+                        rep(TRUE, .N), deficitas_m60808_label_lt)][
+  , .(laikotarpis, kintamasis, obs_value)][
+  , laikotarpis := gsub("M", "-", laikotarpis)][, laikotarpis := as.Date(paste(laikotarpis, "-01", sep = ""))][]
+
+dt_CV_clean
+```
