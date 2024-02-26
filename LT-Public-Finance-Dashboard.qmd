@@ -21,16 +21,29 @@ p_load(eurostat, rsdmx, data.table, plotly, janitor)
 ```{r}
 #| include: false
 
-dt_CV <- as.data.table(readSDMX(providerId = "LSD", resource = "data", flowRef = "S7R283_M2040105", dsd = TRUE), labels = T)
-dt_CV_clean <- dt_CV[, clean_names(dt_CV)][
-  , kintamasis := fcase(deficitas_m60808 == "R04","Dotacijos_i",
-                        deficitas_m60808 == "R11","Vidaus (Grynasis finansinio turto pasikeitimas, išskyrus grynuosius pinigus)",
-                        deficitas_m60808 == "R21","Užsienio (Grynasis finansinio turto pasikeitimas, išskyrus grynuosius pinigus)",
-                        deficitas_m60808 == "R24","Vidaus (Grynasis finansinių įsipareigojimų pasikeitimas)",
-                        deficitas_m60808 == "R25","Užsienio (Grynasis finansinių įsipareigojimų pasikeitimas)",
-                        rep(TRUE, .N), deficitas_m60808_label_lt)][
-  , .(laikotarpis, kintamasis, obs_value)][
-  , laikotarpis := gsub("M", "-", laikotarpis)][, laikotarpis := as.Date(paste(laikotarpis, "-01", sep = ""))][]
+total_variables <- c("Pajamos", "Mokesčiai", "Socialinės įmokos", "Dotacijos_p", "Kitos pajamos",
+                     "Išlaidos", "Darbo užmokestis ir socialinis draudimas", "Prekių ir paslaugų naudojimas", "Palūkanos", "Subsidijos", "Dotacijos_i", "Socialinės išmokos", "Kitos išlaidos")
 
-dt_CV_clean
+pajamos_vars <- c("Pajamos", "Mokesčiai", "Socialinės įmokos", "Dotacijos_p", "Kitos pajamos")
+
+islaidos_vars <- c("Išlaidos", "Darbo užmokestis ir socialinis draudimas", "Prekių ir paslaugų naudojimas", "Palūkanos", "Subsidijos", "Dotacijos_i", "Socialinės išmokos", "Kitos išlaidos")
+
+dt_CV <- as.data.table(readSDMX(providerId = "LSD", resource = "data", flowRef = "S7R283_M2040105", dsd = TRUE), labels = T)
+
+dt_CV_growth_kv <- dt_CV[, clean_names(dt_CV)
+                         ][, kintamasis := fcase(deficitas_m60808 == "R04","Dotacijos_p",
+                                                 deficitas_m60808 == "R11","Dotacijos_i",
+                                                 deficitas_m60808 == "R21","Vidaus (Grynasis finansinio turto pasikeitimas, išskyrus grynuosius pinigus)",
+                                                 deficitas_m60808 == "R22","Užsienio (Grynasis finansinio turto pasikeitimas, išskyrus grynuosius pinigus)",
+                                                 deficitas_m60808 == "R24","Vidaus (Grynasis finansinių įsipareigojimų pasikeitimas)",
+                                                 deficitas_m60808 == "R25","Užsienio (Grynasis finansinių įsipareigojimų pasikeitimas)",
+                                                 rep(TRUE, .N), deficitas_m60808_label_lt)
+                           ][, .(laikotarpis, kintamasis, obs_value)
+                             ][, laikotarpis := as.Date(gsub("M", "-01-", laikotarpis))
+                               ][, dcast(.SD, laikotarpis ~ kintamasis, value.var = "obs_value")
+                                 ][, paste0(total_variables, "_yoy_growth") := lapply(.SD, function(x) (x/shift(x, n=12, type = "lag"))*100-100), .SDcols = total_variables
+                                   ][, paste0(pajamos_vars, "_kv") := lapply(.SD, function(x) (shift(x, n=12, type = "lag")/shift(Pajamos, n=12, type = "lag"))*(x/shift(x, n=12, type = "lag")-1)*100), .SDcols = pajamos_vars
+                                     ][, paste0(islaidos_vars, "_kv") := lapply(.SD, function(x) (shift(x, n=12, type = "lag")/shift(Išlaidos, n=12, type = "lag"))*(x/shift(x, n=12, type = "lag")-1)*100), .SDcols = islaidos_vars
+                                       ][, clean_names(.SD)]
+
 ```
