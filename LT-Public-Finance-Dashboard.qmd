@@ -19,6 +19,7 @@ p_load(eurostat, rsdmx, data.table, plotly, janitor)
 ### Column {.tabset}
 
 ```{r}
+#| label: CV data prep
 #| include: false
 
 total_variables <- c("Pajamos", "Mokesčiai", "Socialinės įmokos", "Dotacijos_p", "Kitos pajamos",
@@ -39,11 +40,34 @@ dt_CV_growth_kv <- dt_CV[, clean_names(dt_CV)
                                                  deficitas_m60808 == "R25","Užsienio (Grynasis finansinių įsipareigojimų pasikeitimas)",
                                                  rep(TRUE, .N), deficitas_m60808_label_lt)
                            ][, .(laikotarpis, kintamasis, obs_value)
-                             ][, laikotarpis := as.Date(gsub("M", "-01-", laikotarpis))
+                             ][, laikotarpis := gsub("M", "-", laikotarpis)][, laikotarpis := as.Date(paste0(laikotarpis, "-01"))
                                ][, dcast(.SD, laikotarpis ~ kintamasis, value.var = "obs_value")
                                  ][, paste0(total_variables, "_yoy_growth") := lapply(.SD, function(x) (x/shift(x, n=12, type = "lag"))*100-100), .SDcols = total_variables
                                    ][, paste0(pajamos_vars, "_kv") := lapply(.SD, function(x) (shift(x, n=12, type = "lag")/shift(Pajamos, n=12, type = "lag"))*(x/shift(x, n=12, type = "lag")-1)*100), .SDcols = pajamos_vars
                                      ][, paste0(islaidos_vars, "_kv") := lapply(.SD, function(x) (shift(x, n=12, type = "lag")/shift(Išlaidos, n=12, type = "lag"))*(x/shift(x, n=12, type = "lag")-1)*100), .SDcols = islaidos_vars
                                        ][, clean_names(.SD)]
 
+```
+
+```{r}
+#| label: CV pajamų metinis augimas ir kaitos veiksniai
+#| title: CV pajamų metinis augimas ir kaitos veiksniai
+#| warning: false
+#| padding: 0px
+
+dt_CV_kv <- dt_CV_growth_kv[,.(laikotarpis, pajamos_kv, mokesciai_kv, socialines_imokos_kv, dotacijos_p_kv, kitos_pajamos_kv)
+                            ][,melt(.SD, measure.vars = 2:ncol(.SD))
+                              ][!is.na(value)
+                                ][,variable := fcase(variable == "pajamos_kv", "Pajamos",
+                                                     variable == "mokesciai_kv", "Mokesčiai",
+                                                     variable == "socialines_imokos_kv", "Socialinės įmokos",
+                                                     variable == "dotacijos_p_kv", "Dotacijos",
+                                                     variable == "kitos_pajamos_kv", "Kitos pajamos")
+                                  ][, value := round(value, 1)]
+  
+plot_ly() |>
+  add_trace(data = dt_CV_kv[variable != "Pajamos"], x = ~laikotarpis, y = ~value, type = "bar", name = ~variable, color = ~variable) |> 
+  layout(barmode = "relative", showlegend = F, xaxis = list(title = "", tickformat="%Y-%m"), yaxis = list(title="")) |> 
+  add_trace(data = dt_CV_kv[variable == "Pajamos"], x = ~laikotarpis, y = ~value, type = "scatter", mode = "lines+markers", color = ~variable, line = list(color = "black", width = 3), marker = list(color = "black", size = 8)) |> 
+  config(modeBarButtonsToRemove = c("lasso2d", "zoom2d", "zoomIn2d", "zoomOut2d", "select2d", "pan2d", "resetScale2d"), displaylogo = F)
 ```
