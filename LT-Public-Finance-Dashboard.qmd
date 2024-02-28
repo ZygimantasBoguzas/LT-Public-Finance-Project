@@ -9,12 +9,12 @@ embed-resources: true
 #| label: Packages
 #| include: false
 if(!require("pacman")) install.packages("pacman");library("pacman")
-p_load(eurostat, rsdmx, data.table, plotly, janitor)
+p_load(eurostat, rsdmx, data.table, plotly, janitor, DT)
 ```
 
-# Centrinė valdžia {orientation="rows" scrolling="true"}
+# Centrinė valdžia {orientation="rows"}
 
-## Row
+## Row {height=55%}
 
 ### Column {.tabset}
 
@@ -55,7 +55,7 @@ dt_CV_growth_kv <- dt_CV[, clean_names(dt_CV)
 #| warning: false
 #| padding: 0px
 
-dt_CV_kv <- dt_CV_growth_kv[,.(laikotarpis, pajamos_kv, mokesciai_kv, socialines_imokos_kv, dotacijos_p_kv, kitos_pajamos_kv)
+dt_CV_p_kv <- dt_CV_growth_kv[,.(laikotarpis, pajamos_kv, mokesciai_kv, socialines_imokos_kv, dotacijos_p_kv, kitos_pajamos_kv)
                             ][,melt(.SD, measure.vars = 2:ncol(.SD))
                               ][!is.na(value)
                                 ][,variable := fcase(variable == "pajamos_kv", "Pajamos",
@@ -66,8 +66,102 @@ dt_CV_kv <- dt_CV_growth_kv[,.(laikotarpis, pajamos_kv, mokesciai_kv, socialines
                                   ][, value := round(value, 1)]
   
 plot_ly() |>
-  add_trace(data = dt_CV_kv[variable != "Pajamos"], x = ~laikotarpis, y = ~value, type = "bar", name = ~variable, color = ~variable) |> 
-  layout(barmode = "relative", showlegend = F, xaxis = list(title = "", tickformat="%Y-%m"), yaxis = list(title="")) |> 
-  add_trace(data = dt_CV_kv[variable == "Pajamos"], x = ~laikotarpis, y = ~value, type = "scatter", mode = "lines+markers", color = ~variable, line = list(color = "black", width = 3), marker = list(color = "black", size = 8)) |> 
+  add_trace(data = dt_CV_p_kv[variable != "Pajamos"], x = ~laikotarpis, y = ~value, type = "bar", name = ~variable, color = ~variable) |> 
+  layout(barmode = "relative", showlegend = F, xaxis = list(title = "", tickformat= "%Y-%m"), yaxis = list(title="")) |> 
+  add_trace(data = dt_CV_p_kv[variable == "Pajamos"], x = ~laikotarpis, y = ~value, type = "scatter", mode = "lines+markers", color = ~variable, line = list(color = "black", width = 3), marker = list(color = "black", size = 8)) |> 
   config(modeBarButtonsToRemove = c("lasso2d", "zoom2d", "zoomIn2d", "zoomOut2d", "select2d", "pan2d", "resetScale2d"), displaylogo = F)
+```
+
+```{r}
+#| label: CV pajamos nominalia išraiška
+#| title: CV pajamos nominalia išraiška
+#| warning: false
+#| padding: 0px
+
+dt_CV_p_nom <- dt_CV_growth_kv[,.(laikotarpis, pajamos, mokesciai, socialines_imokos, dotacijos_p, kitos_pajamos)
+                            ][,melt(.SD, measure.vars = 2:ncol(.SD))
+                              ][!is.na(value)
+                                ][,variable := fcase(variable == "pajamos", "Pajamos",
+                                                     variable == "mokesciai", "Mokesčiai",
+                                                     variable == "socialines_imokos", "Socialinės įmokos",
+                                                     variable == "dotacijos_p", "Dotacijos",
+                                                     variable == "kitos_pajamos", "Kitos pajamos")
+                                  ][, value := round(value, 0)]
+  
+plot_ly() |>
+  add_trace(data = dt_CV_p_nom[variable != "Pajamos"], x = ~laikotarpis, y = ~value, type = "bar", name = ~variable, color = ~variable) |> 
+  layout(barmode = "relative", showlegend = F, xaxis = list(title = "", tickformat= "%Y-%m", type = "tozero"), yaxis = list(title="")) |> 
+  add_trace(data = dt_CV_p_nom[variable == "Pajamos"], x = ~laikotarpis, y = ~value, type = "scatter", mode = "lines+markers", color = ~variable, line = list(color = "black", width = 3), marker = list(color = "black", size = 8)) |> 
+  config(modeBarButtonsToRemove = c("lasso2d", "zoom2d", "zoomIn2d", "zoomOut2d", "select2d", "resetScale2d"), displaylogo = F)
+
+```
+### Column {.tabset}
+
+```{r}
+#| label: CV išlaidų metinis augimas ir kaitos veiksniai
+#| title: CV išlaidų metinis augimas ir kaitos veiksniai
+#| warning: false
+#| padding: 0px
+
+dt_CV_i_kv <- dt_CV_growth_kv[,.(laikotarpis, islaidos_kv, darbo_uzmokestis_ir_socialinis_draudimas_kv, prekiu_ir_paslaugu_naudojimas_kv, palukanos_kv, subsidijos_kv, dotacijos_i_kv, socialines_ismokos_kv, kitos_islaidos_kv)
+                            ][,melt(.SD, measure.vars = 2:ncol(.SD))
+                              ][!is.na(value)
+                                ][,variable := fcase(variable == "islaidos_kv", "Išlaidos",
+                                                     variable == "darbo_uzmokestis_ir_socialinis_draudimas_kv", "Darbo užmokestis ir socialinis draudimas",
+                                                     variable == "prekiu_ir_paslaugu_naudojimas_kv", "Prekių ir paslaugų naudojimas",
+                                                     variable == "palukanos_kv", "Palūkanos",
+                                                     variable == "subsidijos_kv", "Subsidijos",
+                                                     variable == "dotacijos_i_kv", "Dotacijos",
+                                                     variable == "socialines_ismokos_kv", "Socialinės išmokos",
+                                                     variable == "kitos_islaidos_kv", "Kitos išlaidos")
+                                  ][, value := round(value, 1)]
+  
+plot_ly() |>
+  add_trace(data = dt_CV_i_kv[variable != "Išlaidos"], x = ~laikotarpis, y = ~value, type = "bar", name = ~variable, color = ~variable) |> 
+  layout(barmode = "relative", showlegend = F, xaxis = list(title = "", tickformat= "%Y-%m"), yaxis = list(title="")) |> 
+  add_trace(data = dt_CV_i_kv[variable == "Išlaidos"], x = ~laikotarpis, y = ~value, type = "scatter", mode = "lines+markers", color = ~variable, line = list(color = "black", width = 3), marker = list(color = "black", size = 8)) |> 
+  config(modeBarButtonsToRemove = c("lasso2d", "zoom2d", "zoomIn2d", "zoomOut2d", "select2d", "pan2d", "resetScale2d"), displaylogo = F)
+
+```
+
+
+```{r}
+#| label: CV išlaidos nominalia išraiška
+#| title: CV išlaidos nominalia išraiška
+#| warning: false
+#| padding: 0px
+
+dt_CV_i_nom <- dt_CV_growth_kv[,.(laikotarpis, islaidos, darbo_uzmokestis_ir_socialinis_draudimas, prekiu_ir_paslaugu_naudojimas, palukanos, subsidijos, dotacijos_i, socialines_ismokos, kitos_islaidos)
+                            ][,melt(.SD, measure.vars = 2:ncol(.SD))
+                              ][!is.na(value)
+                                ][,variable := fcase(variable == "islaidos", "Išlaidos",
+                                                     variable == "darbo_uzmokestis_ir_socialinis_draudimas", "Darbo užmokestis ir socialinis draudimas",
+                                                     variable == "prekiu_ir_paslaugu_naudojimas", "Prekių ir paslaugų naudojimas",
+                                                     variable == "palukanos", "Palūkanos",
+                                                     variable == "subsidijos", "Subsidijos",
+                                                     variable == "dotacijos_i", "Dotacijos",
+                                                     variable == "socialines_ismokos", "Socialinės išmokos",
+                                                     variable == "kitos_islaidos", "Kitos išlaidos")
+                                  ][, value := round(value, 0)]
+  
+plot_ly() |>
+  add_trace(data = dt_CV_i_nom[variable != "Išlaidos"], x = ~laikotarpis, y = ~value, type = "bar", name = ~variable, color = ~variable) |> 
+  layout(barmode = "relative", showlegend = F, xaxis = list(title = "", tickformat= "%Y-%m"), yaxis = list(title="")) |> 
+  add_trace(data = dt_CV_i_nom[variable == "Išlaidos"], x = ~laikotarpis, y = ~value, type = "scatter", mode = "lines+markers", color = ~variable, line = list(color = "black", width = 3), marker = list(color = "black", size = 8)) |> 
+  config(modeBarButtonsToRemove = c("lasso2d", "zoom2d", "zoomIn2d", "zoomOut2d", "select2d", "resetScale2d"), displaylogo = F)
+
+```
+
+
+## Row
+
+```{r}
+dt_CV_growth_kv[, 2:ncol(dt_CV_growth_kv) := lapply(.SD, round, 1), .SDcols = 2:ncol(dt_CV_growth_kv)
+                ][, datatable(data = .SD, rownames = F, filter = "top", extensions = c("Buttons","Scroller"), options = list(dom = "BSltpr", 
+                                                                                                 buttons = c("copy","excel","pdf"), 
+                                                                                                 autoWidth = TRUE,
+                                                                                                 paging = TRUE,
+                                                                                                 scroller = TRUE,
+                                                                                                 scrollY = 200,
+                                                                                                 scrollX = TRUE))]
 ```
