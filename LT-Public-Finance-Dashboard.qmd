@@ -14,10 +14,9 @@ p_load(eurostat, rsdmx, data.table, plotly, janitor, DT)
 
 # Centrinė valdžia {orientation="rows"}
 
-## Row {height=55%}
+## {.tabset}
 
-### Column {.tabset}
-
+### Charts {.panel-tabset}
 ```{r}
 #| label: CV data prep
 #| include: false
@@ -48,6 +47,8 @@ dt_CV_growth_kv <- dt_CV[, clean_names(dt_CV)
                                        ][, clean_names(.SD)]
 
 ```
+
+#### Column1 {.tabset}
 
 ```{r}
 #| label: CV pajamų metinis augimas ir kaitos veiksniai
@@ -95,7 +96,7 @@ plot_ly() |>
   config(modeBarButtonsToRemove = c("lasso2d", "zoom2d", "zoomIn2d", "zoomOut2d", "select2d", "resetScale2d"), displaylogo = F)
 
 ```
-### Column {.tabset}
+#### Column2 {.tabset}
 
 ```{r}
 #| label: CV išlaidų metinis augimas ir kaitos veiksniai
@@ -124,7 +125,6 @@ plot_ly() |>
 
 ```
 
-
 ```{r}
 #| label: CV išlaidos nominalia išraiška
 #| title: CV išlaidos nominalia išraiška
@@ -151,17 +151,18 @@ plot_ly() |>
   config(modeBarButtonsToRemove = c("lasso2d", "zoom2d", "zoomIn2d", "zoomOut2d", "select2d", "resetScale2d"), displaylogo = F)
 
 ```
-
-
-## Row
-
+### Data
 ```{r}
+#| label: CV Data
+#| warning: false
+#| padding: 0px
+
 dt_CV_growth_kv[, 2:ncol(dt_CV_growth_kv) := lapply(.SD, round, 1), .SDcols = 2:ncol(dt_CV_growth_kv)
                 ][, datatable(data = .SD, rownames = F, filter = "top", extensions = c("Buttons","Scroller"), options = list(dom = "BSltpr", 
                                                                                                  buttons = c("copy","excel","pdf"), 
                                                                                                  autoWidth = TRUE,
                                                                                                  paging = TRUE,
                                                                                                  scroller = TRUE,
-                                                                                                 scrollY = 200,
+                                                                                                 scrollY = 595,
                                                                                                  scrollX = TRUE))]
 ```
