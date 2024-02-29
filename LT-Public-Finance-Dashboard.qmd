@@ -9,7 +9,7 @@ embed-resources: true
 #| label: Packages
 #| include: false
 if(!require("pacman")) install.packages("pacman");library("pacman")
-p_load(eurostat, rsdmx, data.table, plotly, janitor, DT)
+p_load(eurostat, rsdmx, data.table, janitor, zoo, plotly, DT)
 ```
 
 ```{r include=FALSE}
@@ -28,7 +28,6 @@ kv_calc <- function(x, y) {(shift(x, n=12, type = "lag")/shift(y, n=12, type = "
 ```{r}
 #| label: CV data prep
 #| include: false
-
 total_variables <- c("Pajamos", "Mokesčiai", "Socialinės įmokos", "Dotacijos_p", "Kitos pajamos",
                      "Išlaidos", "Darbo užmokestis ir socialinis draudimas", "Prekių ir paslaugų naudojimas", "Palūkanos", "Subsidijos", "Dotacijos_i", "Socialinės išmokos", "Kitos išlaidos")
 
@@ -47,7 +46,7 @@ dt_CV_growth_kv <- dt_CV[, clean_names(dt_CV)
                                                  deficitas_m60808 == "R25","Užsienio (Grynasis finansinių įsipareigojimų pasikeitimas)",
                                                  rep(TRUE, .N), deficitas_m60808_label_lt)
                            ][, .(laikotarpis, kintamasis, obs_value)
-                             ][, laikotarpis := gsub("M", "-", laikotarpis)][, laikotarpis := as.Date(paste0(laikotarpis, "-01"))
+                             ][, laikotarpis := as.Date(as.yearmon(laikotarpis, format = "%YM%m"))
                                ][, dcast(.SD, laikotarpis ~ kintamasis, value.var = "obs_value")
                                  ][, paste0(total_variables, "_yoy_growth") := lapply(.SD, yoy_growth), .SDcols = total_variables
                                    ][, paste0(pajamos_vars, "_kv") := lapply(.SD, kv_calc, y = Pajamos), .SDcols = pajamos_vars
@@ -306,6 +305,25 @@ dt_CV_growth_kv[, 2:ncol(dt_CV_growth_kv) := lapply(.SD, round, 1), .SDcols = 2:
                                                                                                  scroller = TRUE,
                                                                                                  scrollY = 585,
                                                                                                  scrollX = TRUE))]
+```
+
+# Valdžios sektorius {orientation="rows"}
+
+## {.tabset}
+
+### Charts {.panel-tabset}
+```{r}
+#| label: VS data prep
+#| include: false
+
+dt_VS <- as.data.table(readSDMX(providerId = "LSD", resource = "data", flowRef = "S7R268_M2040217", dsd = TRUE), labels = T)
+
+dt_VS_growth_kv <- dt_VS[sektoriusM6020205 == "S13", clean_names(.SD)
+                         ][, variable := paste(sandoris_m2040217_label_lt, sandoris_m2040217, sep = "_")
+                           ][, .(laikotarpis, variable, obs_value)
+                             ][, laikotarpis := as.Date(as.yearqtr(laikotarpis, format = "%YK%q"))
+                               ][, dcast(.SD, laikotarpis ~ variable, value.var = "obs_value")
+                                 ]
 ```
 
 
